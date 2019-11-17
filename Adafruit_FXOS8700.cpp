@@ -1,36 +1,19 @@
-/*!
- * @file Adafruit_FXOS8700.cpp
- *
- * @mainpage Adafruit FXOS8700 accel/mag sensor driver
- *
- * @section intro_sec Introduction
- *
- * This is the documentation for Adafruit's FXOS8700 driver for the
- * Arduino platform.  It is designed specifically to work with the
- * Adafruit FXOS8700 breakout: https://www.adafruit.com/products/3463
- *
- * These sensors use I2C to communicate, 2 pins (SCL+SDA) are required
- * to interface with the breakout.
- *
- * Adafruit invests time and resources providing this open source code,
- * please support Adafruit and open-source hardware by purchasing
- * products from Adafruit!
- *
- * @section dependencies Dependencies
- *
- * This library depends on <a href="https://github.com/adafruit/Adafruit_Sensor">
- * Adafruit_Sensor</a> being present on your system. Please make sure you have
- * installed the latest version before using this library.
- *
- * @section author Author
- *
- * Written by Kevin "KTOWN" Townsend for Adafruit Industries.
- *
- * @section license License
- *
- * MIT license, all text here must be included in any redistribution.
- *
- */
+/***************************************************
+  This is a library for the FXOS8700 Accel/Mag
+
+  Designed specifically to work with the Adafruit FXOS8700 Breakout
+  ----> https://www.adafruit.com/products/
+
+  These sensors use I2C to communicate, 2 pins (I2C)
+  are required to interface.
+
+  Adafruit invests time and resources providing this open source code,
+  please support Adafruit and open-source hardware by purchasing
+  products from Adafruit!
+
+  Written by Kevin "KTOWN" Townsend for Adafruit Industries.
+  BSD license, all text above must be included in any redistribution
+ ****************************************************/
 #if ARDUINO >= 100
  #include "Arduino.h"
 #else
@@ -42,13 +25,9 @@
 
 #include "Adafruit_FXOS8700.h"
 
-/** Macro for mg per LSB at +/- 2g sensitivity (1 LSB = 0.000244mg) */
 #define ACCEL_MG_LSB_2G (0.000244F)
-/** Macro for mg per LSB at +/- 4g sensitivity (1 LSB = 0.000488mg) */
 #define ACCEL_MG_LSB_4G (0.000488F)
-/** Macro for mg per LSB at +/- 8g sensitivity (1 LSB = 0.000976mg) */
 #define ACCEL_MG_LSB_8G (0.000976F)
-/** Macro for micro tesla (uT) per LSB (1 LSB = 0.1uT) */
 #define MAG_UT_LSB      (0.1F)
 
 /***************************************************************************
@@ -57,46 +36,43 @@
 
 /**************************************************************************/
 /*!
-    @brief  Abstract away platform differences in the Arduino wire library
-    @param reg The register address to write to
-    @param value The value to write to the specified register
+    @brief  Abstract away platform differences in Arduino wire library
 */
 /**************************************************************************/
 void Adafruit_FXOS8700::write8(byte reg, byte value)
 {
-  Wire.beginTransmission(FXOS8700_ADDRESS);
+  _i2cPort->beginTransmission(FXOS8700_ADDRESS);
   #if ARDUINO >= 100
-    Wire.write((uint8_t)reg);
-    Wire.write((uint8_t)value);
+    _i2cPort->write((uint8_t)reg);
+    _i2cPort->write((uint8_t)value);
   #else
-    Wire.send(reg);
-    Wire.send(value);
+    _i2cPort->send(reg);
+    _i2cPort->send(value);
   #endif
-  Wire.endTransmission();
+  _i2cPort->endTransmission();
 }
 
 /**************************************************************************/
 /*!
-    @brief  Abstract away platform differences in the Arduino wire library
-    @param reg The register address to read from
+    @brief  Abstract away platform differences in Arduino wire library
 */
 /**************************************************************************/
 byte Adafruit_FXOS8700::read8(byte reg)
 {
   byte value;
 
-  Wire.beginTransmission((byte)FXOS8700_ADDRESS);
+  _i2cPort->beginTransmission((byte)FXOS8700_ADDRESS);
   #if ARDUINO >= 100
-    Wire.write((uint8_t)reg);
+    _i2cPort->write((uint8_t)reg);
   #else
-    Wire.send(reg);
+    _i2cPort->send(reg);
   #endif
-  if (Wire.endTransmission(false) != 0) return 0;
-  Wire.requestFrom((byte)FXOS8700_ADDRESS, (byte)1);
+  if (_i2cPort->endTransmission(false) != 0) return 0;
+  _i2cPort->requestFrom((byte)FXOS8700_ADDRESS, (byte)1);
   #if ARDUINO >= 100
-    value = Wire.read();
+    value = _i2cPort->read();
   #else
-    value = Wire.receive();
+    value = _i2cPort->receive();
   #endif
 
   return value;
@@ -106,15 +82,11 @@ byte Adafruit_FXOS8700::read8(byte reg)
  CONSTRUCTOR
  ***************************************************************************/
 
- /**************************************************************************/
- /*!
-     @brief  Instantiates a new Adafruit_FXOS8700 class, including assigning
-             a unique ID to the accel and magnetometer for logging purposes.
-
-     @param accelSensorID The unique ID to associate with the accelerometer.
-     @param magSensorID The unique ID to associate with the magnetometer.
- */
- /**************************************************************************/
+/**************************************************************************/
+/*!
+    @brief  Instantiates a new Adafruit_FXOS8700 class
+*/
+/**************************************************************************/
 Adafruit_FXOS8700::Adafruit_FXOS8700(int32_t accelSensorID, int32_t magSensorID)
 {
   _accelSensorID = accelSensorID;
@@ -125,21 +97,15 @@ Adafruit_FXOS8700::Adafruit_FXOS8700(int32_t accelSensorID, int32_t magSensorID)
  PUBLIC FUNCTIONS
  ***************************************************************************/
 
- /**************************************************************************/
- /*!
-     @brief  Initializes the hardware, including setting the accelerometer
-             range based on fxos8700AccelRange_t
-
-     @param  rng
-             The range to set for the accelerometer, based on fxos8700AccelRange_t
-
-     @return True if the device was successfully initialized, otherwise false.
- */
- /**************************************************************************/
-bool Adafruit_FXOS8700::begin(fxos8700AccelRange_t rng)
+/**************************************************************************/
+/*!
+    @brief  Setups the HW
+*/
+/**************************************************************************/
+bool Adafruit_FXOS8700::begin(fxos8700AccelRange_t rng, TwoWire &wirePort)
 {
   /* Enable I2C */
-  Wire.begin();
+  _i2cPort = &wirePort;
 
   /* Set the range the an appropriate value */
   _range = rng;
@@ -189,24 +155,11 @@ bool Adafruit_FXOS8700::begin(fxos8700AccelRange_t rng)
   return true;
 }
 
+
+
 /**************************************************************************/
 /*!
-    @brief  Gets the most recent sensor events.
-
-            This function reads from both the accelerometer and the
-            magnetometer in one call, and is a deviation from the standard
-            Adafruit_Sensor API, but is provided as a convenience since most
-            AHRS algorithms require sensor samples to be as close in time as
-            possible.
-
-    @param    accelEvent
-              A reference to the sensors_event_t instances where the
-              accelerometer data should be written.
-    @param    magEvent
-              A reference to the sensors_event_t instances where the
-              magnetometer data should be written.
-
-    @return True if the event read was successful, otherwise false.
+    @brief  Gets the most recent sensor event
 */
 /**************************************************************************/
 bool Adafruit_FXOS8700::getEvent(sensors_event_t* accelEvent, sensors_event_t* magEvent)
@@ -233,44 +186,44 @@ bool Adafruit_FXOS8700::getEvent(sensors_event_t* accelEvent, sensors_event_t* m
   magEvent->type      = SENSOR_TYPE_MAGNETIC_FIELD;
 
   /* Read 13 bytes from the sensor */
-  Wire.beginTransmission((byte)FXOS8700_ADDRESS);
+  _i2cPort->beginTransmission((byte)FXOS8700_ADDRESS);
   #if ARDUINO >= 100
-    Wire.write(FXOS8700_REGISTER_STATUS | 0x80);
+    _i2cPort->write(FXOS8700_REGISTER_STATUS | 0x80);
   #else
-    Wire.send(FXOS8700_REGISTER_STATUS | 0x80);
+    _i2cPort->send(FXOS8700_REGISTER_STATUS | 0x80);
   #endif
-  Wire.endTransmission();
-  Wire.requestFrom((byte)FXOS8700_ADDRESS, (byte)13);
+  _i2cPort->endTransmission();
+  _i2cPort->requestFrom((byte)FXOS8700_ADDRESS, (byte)13);
 
   /* ToDo: Check status first! */
   #if ARDUINO >= 100
-    uint8_t status = Wire.read();
-    uint8_t axhi = Wire.read();
-    uint8_t axlo = Wire.read();
-    uint8_t ayhi = Wire.read();
-    uint8_t aylo = Wire.read();
-    uint8_t azhi = Wire.read();
-    uint8_t azlo = Wire.read();
-    uint8_t mxhi = Wire.read();
-    uint8_t mxlo = Wire.read();
-    uint8_t myhi = Wire.read();
-    uint8_t mylo = Wire.read();
-    uint8_t mzhi = Wire.read();
-    uint8_t mzlo = Wire.read();
+    uint8_t status = _i2cPort->read();
+    uint8_t axhi = _i2cPort->read();
+    uint8_t axlo = _i2cPort->read();
+    uint8_t ayhi = _i2cPort->read();
+    uint8_t aylo = _i2cPort->read();
+    uint8_t azhi = _i2cPort->read();
+    uint8_t azlo = _i2cPort->read();
+    uint8_t mxhi = _i2cPort->read();
+    uint8_t mxlo = _i2cPort->read();
+    uint8_t myhi = _i2cPort->read();
+    uint8_t mylo = _i2cPort->read();
+    uint8_t mzhi = _i2cPort->read();
+    uint8_t mzlo = _i2cPort->read();
   #else
-    uint8_t status = Wire.receive();
-    uint8_t axhi = Wire.receive();
-    uint8_t axlo = Wire.receive();
-    uint8_t ayhi = Wire.receive();
-    uint8_t aylo = Wire.receive();
-    uint8_t azhi = Wire.receive();
-    uint8_t azlo = Wire.receive();
-    uint8_t mxhi = Wire.receive();
-    uint8_t mxlo = Wire.receive();
-    uint8_t myhi = Wire.receive();
-    uint8_t mylo = Wire.receive();
-    uint8_t mzhi = Wire.receive();
-    uint8_t mzlo = Wire.receive();
+    uint8_t status = _i2cPort->receive();
+    uint8_t axhi = _i2cPort->receive();
+    uint8_t axlo = _i2cPort->receive();
+    uint8_t ayhi = _i2cPort->receive();
+    uint8_t aylo = _i2cPort->receive();
+    uint8_t azhi = _i2cPort->receive();
+    uint8_t azlo = _i2cPort->receive();
+    uint8_t mxhi = _i2cPort->receive();
+    uint8_t mxlo = _i2cPort->receive();
+    uint8_t myhi = _i2cPort->receive();
+    uint8_t mylo = _i2cPort->receive();
+    uint8_t mzhi = _i2cPort->receive();
+    uint8_t mzlo = _i2cPort->receive();
   #endif
 
   /* Set the timestamps */
@@ -324,14 +277,7 @@ bool Adafruit_FXOS8700::getEvent(sensors_event_t* accelEvent, sensors_event_t* m
 
 /**************************************************************************/
 /*!
-    @brief  Gets sensor_t data for both the accel and mag in one operation.
-
-    @param    accelSensor
-              A reference to the sensor_t instances where the
-              accelerometer sensor info should be written.
-    @param    magSensor
-              A reference to the sensor_t instances where the
-              magnetometer sensor info should be written.
+    @brief  Gets the sensor_t data
 */
 /**************************************************************************/
 void  Adafruit_FXOS8700::getSensor(sensor_t* accelSensor, sensor_t* magSensor)
@@ -376,73 +322,20 @@ void  Adafruit_FXOS8700::getSensor(sensor_t* accelSensor, sensor_t* magSensor)
   magSensor->resolution  = 0.1F;
 }
 
-/**************************************************************************/
-/*!
-    @brief    Reads a single sensor event from the accelerometer.
-
-    @attention
-
-    This function exists to keep Adafruit_Sensor happy since we
-    need a single sensor in the canonical .getEvent call. The
-    non-standard .getEvent call with two parameters should
-    generally be used with this sensor.
-
-    @param    accelEvent
-              A reference to the sensors_event_t instances where the
-              accelerometer data should be written.
-
-    @return True if the event read was successful, otherwise false.
-*/
-/**************************************************************************/
+/* To keep Adafruit_Sensor happy we need a single sensor interface */
+/* When only one sensor is requested, return accel data */
 bool Adafruit_FXOS8700::getEvent(sensors_event_t* accelEvent)
 {
-    sensors_event_t accel;
+    sensors_event_t mag;
 
-    return getEvent(accelEvent, &accel);
+    return getEvent(accelEvent, &mag);
 }
 
-/**************************************************************************/
-/*!
-    @brief   Gets sensor details about the accelerometer.
-
-    @attention
-
-    This function exists to keep Adafruit_Sensor happy since we
-    need a single sensor in the canonical .getSensor call. The
-    non-standard .getSensor call with two parameters should
-    generally be used with this sensor.
-
-    @param   accelSensor
-             A reference to the sensor_t instances where the
-             accelerometer sensor info should be written.
-*/
-/**************************************************************************/
+/* To keep Adafruit_Sensor happy we need a single sensor interface */
+/* When only one sensor is requested, return accel data */
 void  Adafruit_FXOS8700::getSensor(sensor_t* accelSensor)
 {
-    sensor_t accel;
+    sensor_t mag;
 
-    return getSensor(accelSensor, &accel);
-}
-
-
-/**************************************************************************/
-/*!
-    @brief  Puts device into/out of standby mode
-
-    @param standby Set this to a non-zero value to enter standy mode.
-*/
-/**************************************************************************/
-void Adafruit_FXOS8700::standby(boolean standby)
-{
-  uint8_t reg1 = read8(FXOS8700_REGISTER_CTRL_REG1);
-  if (standby) {
-    reg1 &= ~(0x01);
-  } else {
-    reg1 |= (0x01);
-  }
-  write8(FXOS8700_REGISTER_CTRL_REG1, reg1);
-
-  if (! standby) {
-    delay(100);
-  }
+    return getSensor(accelSensor, &mag);
 }
